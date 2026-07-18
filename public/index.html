@@ -4,12 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>極大出前注文システム | KyM Spanner API</title>
-
+    
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700&display=swap" rel="stylesheet">
-
+    
     <!-- Custom Style Sheet -->
     <link rel="stylesheet" href="style.css">
 </head>
@@ -28,7 +28,7 @@
             <div class="column-left">
                 <div class="card paxos-card">
                     <h2 class="card-title">障害シミュレーター</h2>
-
+                    
                     <div class="story-box">
                         💡 <strong>出前停止防止シナリオ</strong><br>
                         出前システム停止による注文ロスを防ぐため、日本全国のデータセンター（市川・稚内・与那国・徳島・佐渡）にレプリカを分散配置！過半数(3/5)が稼働していれば、障害時も注文を一切落とさずに合意保存（Paxos）できる様子を実証します。
@@ -286,7 +286,7 @@
         // Form Submission with Paxos Visual Simulation
         async function submitForm(e) {
             e.preventDefault();
-
+            
             const btn = document.querySelector('.btn-submit');
             btn.disabled = true;
             btn.textContent = '提案(Propose)中...';
@@ -364,7 +364,7 @@
 
                 const currentDataJSON = JSON.stringify(data);
                 if (currentDataJSON === lastDataJSON) {
-                    return;
+                    return; 
                 }
                 lastDataJSON = currentDataJSON;
 
@@ -390,7 +390,7 @@
             } catch (err) {
                 console.error(err);
                 container.innerHTML = `<div class="empty-state" style="color:#ef4444;">注文データの取得に失敗しました。</div>`;
-                lastDataJSON = '';
+                lastDataJSON = ''; 
             }
         }
 

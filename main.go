@@ -69,7 +69,7 @@ func main() {
 	// Static routes
 	http.HandleFunc("/", serveIndex)
 	http.HandleFunc("/style.css", serveStyle)
-
+	
 	// API routes
 	http.HandleFunc("/api/contact", handleContact)
 	http.HandleFunc("/api/contacts", handleGetContacts)
