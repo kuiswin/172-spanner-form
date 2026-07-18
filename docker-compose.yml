@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  # 1. Cloud Spanner PGAdapter & Emulator (Combined official developer image)
+  spanner-pgadapter:
+    image: gcr.io/cloud-spanner-pg-adapter/pgadapter-emulator
+    container_name: spanner-pgadapter
+    ports:
+      - "127.0.0.1:5432:5432" # Postgres Port (loopback to prevent external exposure)
+      - "127.0.0.1:9010:9010" # Spanner gRPC Port (loopback to prevent external exposure)
+      - "127.0.0.1:9020:9020" # Spanner REST Port (loopback to prevent external exposure)
+    restart: always
+
+  # 2. Spanner Emulator & PGAdapter Database initialization
+  spanner-init:
+    image: google/cloud-sdk:alpine
+    container_name: spanner-init
+    depends_on:
+      - spanner-pgadapter
+    entrypoint: >
+      bash -c "
+        echo 'Waiting for Spanner Emulator to start...' &&
+        until nc -z spanner-pgadapter 5432; do
+          sleep 1
+        done &&
+        gcloud config set project emulator-project &&
+        gcloud config set auth/disable_credentials True &&
+        gcloud config set api_endpoint_overrides/spanner http://spanner-pgadapter:9020/ &&
+        (gcloud spanner instances create test-instance --config=emulator-config --description='Test Instance' --nodes=1 || true) &&
+        (gcloud spanner databases create local-db --instance=test-instance --database-dialect=POSTGRESQL || true) &&
+        sleep 3 &&
+        gcloud spanner databases ddl update local-db --instance=test-instance --ddl='CREATE TABLE IF NOT EXISTS orders (id VARCHAR(36) PRIMARY KEY, customer_name VARCHAR(100), delivery_address VARCHAR(255), created_at TIMESTAMPTZ)' &&
+        gcloud spanner databases ddl update local-db --instance=test-instance --ddl='CREATE TABLE IF NOT EXISTS order_items (id VARCHAR(36), item_id VARCHAR(36), item_name VARCHAR(100), quantity BIGINT, PRIMARY KEY (id, item_id)) INTERLEAVE IN PARENT orders ON DELETE CASCADE' &&
+        echo 'Spanner DB Setup Completed successfully!'
+      "
+
+  # 3. Go API Contact Form
+  go-api:
+    build: .
+    container_name: spanner-go-api
+    depends_on:
+      - spanner-pgadapter
+    ports:
+      - "8080:80" # Serve Web UI on LXCのポート 8080
+    environment:
+      - DATABASE_URL=postgres://postgres@spanner-pgadapter:5432/local-db?sslmode=disable
