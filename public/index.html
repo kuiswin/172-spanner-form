@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>極大出前注文システム | KyM Spanner API</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700&display=swap" rel="stylesheet">
+
+    <!-- Custom Style Sheet -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo-container">
+                <span class="logo-badge">Spanner</span>
+                <h1>出前注文管理センター</h1>
+            </div>
+            <div class="mode-badge">Spanner PGAdapter 接続中</div>
+        </header>
+
+        <div class="grid-layout">
+            <!-- 左カラム: 障害シミュレーター -->
+            <div class="column-left">
+                <div class="card paxos-card">
+                    <h2 class="card-title">障害シミュレーター</h2>
+
+                    <div class="story-box">
+                        💡 <strong>出前停止防止シナリオ</strong><br>
+                        出前システム停止による注文ロスを防ぐため、日本全国のデータセンター（市川・稚内・与那国・徳島・佐渡）にレプリカを分散配置！過半数(3/5)が稼働していれば、障害時も注文を一切落とさずに合意保存（Paxos）できる様子を実証します。
+                    </div>
+
+                    <div class="paxos-network-vertical">
+                        <!-- 接続線 -->
+                        <div class="network-timeline-line" id="timeline-line"></div>
+
+                        <!-- 市川ノード (Leader) -->
+                        <div class="node-vertical-item" id="node-ichikawa">
+                            <div class="node-top-row">
+                                <div class="node-icon-wrapper">🏢</div>
+                                <div class="node-vertical-info">
+                                    <div class="node-vertical-title">市川リージョン</div>
+                                    <div class="node-badge-row">
+                                        <span class="role-badge leader">Leader</span>
+                                        <span class="node-status ONLINE">ONLINE</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <button class="node-toggle-btn active-state" id="btn-ichikawa" onclick="toggleRegion('ichikawa')">💥 破壊する</button>
+                        </div>
+
+                        <!-- 稚内ノード (Replica) -->
+                        <div class="node-vertical-item" id="node-wakkanai">
+                            <div class="node-top-row">
+                                <div class="node-icon-wrapper">❄️</div>
+                                <div class="node-vertical-info">
+                                    <div class="node-vertical-title">稚内リージョン</div>
+                                    <div class="node-badge-row">
+                                        <span class="role-badge replica">Replica</span>
+                                        <span class="node-status ONLINE">ONLINE</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <button class="node-toggle-btn active-state" id="btn-wakkanai" onclick="toggleRegion('wakkanai')">💥 破壊する</button>
+                        </div>
+
+                        <!-- 与那国ノード (Replica) -->
+                        <div class="node-vertical-item" id="node-yonaguni">
+                            <div class="node-top-row">
+                                <div class="node-icon-wrapper">🌺</div>
+                                <div class="node-vertical-info">
+                                    <div class="node-vertical-title">与那国リージョン</div>
+                                    <div class="node-badge-row">
+                                        <span class="role-badge replica">Replica</span>
+                                        <span class="node-status ONLINE">ONLINE</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <button class="node-toggle-btn active-state" id="btn-yonaguni" onclick="toggleRegion('yonaguni')">💥 破壊する</button>
+                        </div>
+
+                        <!-- 徳島ノード (Witness) -->
+                        <div class="node-vertical-item" id="node-tokushima">
+                            <div class="node-top-row">
+                                <div class="node-icon-wrapper">🌀</div>
+                                <div class="node-vertical-info">
+                                    <div class="node-vertical-title">徳島リージョン</div>
+                                    <div class="node-badge-row">
+                                        <span class="role-badge witness">Witness</span>
+                                        <span class="node-status ONLINE">ONLINE</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <button class="node-toggle-btn active-state" id="btn-tokushima" onclick="toggleRegion('tokushima')">💥 破壊する</button>
+                        </div>
+
+                        <!-- 佐渡ノード (Witness) -->
+                        <div class="node-vertical-item" id="node-sado">
+                            <div class="node-top-row">
+                                <div class="node-icon-wrapper">🪙</div>
+                                <div class="node-vertical-info">
+                                    <div class="node-vertical-title">佐渡リージョン</div>
+                                    <div class="node-badge-row">
+                                        <span class="role-badge witness">Witness</span>
+                                        <span class="node-status ONLINE">ONLINE</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <button class="node-toggle-btn active-state" id="btn-sado" onclick="toggleRegion('sado')">💥 破壊する</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 中央カラム: お問い合わせフォーム & DB格納ログ -->
+            <div class="column-center">
+                <!-- 出前注文フォーム -->
+                <div class="card form-card">
+                    <h2 class="card-title">新規出前注文の受付</h2>
+                    <form id="contact-form" onsubmit="submitForm(event)">
+                        <div class="form-group">
+                            <label for="name" class="form-label">ご注文者名</label>
+                            <input type="text" id="name" class="form-control" placeholder="山田 太郎" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="email" class="form-label">ご注文メニュー</label>
+                            <input type="text" id="email" class="form-control" placeholder="特上江戸前寿司 (3人前)" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="message" class="form-label">お届け先住所・配達要望</label>
+                            <textarea id="message" class="form-control" rows="5" placeholder="東京都葛飾区新小岩3-1-2 マンション201号 / インターホンを鳴らさずに置いてください。" required></textarea>
+                        </div>
+                        <button type="submit" class="btn-submit">Spannerへ注文を送信する</button>
+                    </form>
+                </div>
+
+                <!-- Spanner 格納ログ (最新の注文履歴) -->
+                <div class="card log-card">
+                    <h2 class="card-title">Spanner 格納ログ (最新の注文履歴)</h2>
+                    <div id="contact-logs" class="contact-logs">
+                        <div class="loading-state">注文履歴データを取得中...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右カラム: Paxos 合意形成ログ (縦に流れ続けるログ) -->
+            <div class="column-right">
+                <div class="card terminal-card">
+                    <h2 class="card-title">Paxos 合意形成ログ</h2>
+                    <div class="paxos-terminal">
+                        <div class="terminal-header">
+                            <span class="terminal-dot red"></span>
+                            <span class="terminal-dot yellow"></span>
+                            <span class="terminal-dot green"></span>
+                            <span class="terminal-title">Paxos Consensus Log</span>
+                        </div>
+                        <div class="terminal-body" id="paxos-logs">
+                            <div class="terminal-line system">[SYSTEM] 出前注文分散管理クラスター初期化完了。</div>
+                            <div class="terminal-line system">[SYSTEM] 合意形成に必要なクォーラム構成数: 3/5 (過半数のアクティブノードが必要)</div>
+                            <div class="terminal-line text-green">[SYSTEM] 稼働状況: 5/5 ノードがオンラインです。</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Cloud Spanner pg-dialect Emulator &bull; PGAdapter Proxy &bull; Paxos Quorum Demonstrator</p>
+        </footer>
+    </div>
+
+    <script>
+        // Write to Paxos terminal console
+        function logTerminal(text, type = '') {
+            const container = document.getElementById('paxos-logs');
+            const timeStr = new Date().toLocaleTimeString();
+            let className = 'terminal-line';
+            if (type === 'system') className += ' system';
+            else if (type === 'success') className += ' text-green';
+            else if (type === 'error') className += ' text-red';
+            else if (type === 'warn') className += ' text-yellow';
+
+            const line = document.createElement('div');
+            line.className = className;
+            line.textContent = `[${timeStr}] ${text}`;
+            container.appendChild(line);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // Toggle Region Outage State
+        async function toggleRegion(regionId) {
+            const btn = document.getElementById(`btn-${regionId}`);
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/regions/toggle', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: regionId })
+                });
+
+                if (res.ok) {
+                    const result = await res.json();
+                    updateRegionsUI(result.regions);
+                } else {
+                    alert('リージョンの切り替えに失敗しました。');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('通信エラーが発生しました。');
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        // Fetch Regions Status
+        async function fetchRegions() {
+            try {
+                const res = await fetch('/api/regions');
+                if (res.ok) {
+                    const data = await res.json();
+                    updateRegionsUI(data);
+                }
+            } catch (err) {
+                console.error('Failed to fetch region status:', err);
+            }
+        }
+
+        let currentActiveCount = 5;
+
+        // Update UI based on region statuses
+        function updateRegionsUI(regionsList) {
+            let activeCount = 0;
+            const regionStatusMap = {};
+            const quorumRequired = Math.floor(regionsList.length / 2) + 1;
+
+            regionsList.forEach(reg => {
+                const node = document.getElementById(`node-${reg.id}`);
+                const btn = document.getElementById(`btn-${reg.id}`);
+                const statusBadge = node.querySelector('.node-status');
+
+                regionStatusMap[reg.id] = (reg.status === 'ONLINE');
+
+                if (reg.status === 'ONLINE') {
+                    activeCount++;
+                    node.classList.remove('OFFLINE');
+                    statusBadge.className = 'node-status ONLINE';
+                    statusBadge.textContent = 'ONLINE';
+                    btn.textContent = '💥 破壊する';
+                    btn.className = 'node-toggle-btn active-state';
+                } else {
+                    node.classList.add('OFFLINE');
+                    statusBadge.className = 'node-status OFFLINE';
+                    statusBadge.textContent = 'OFFLINE 💥';
+                    btn.textContent = '💚 復旧する';
+                    btn.className = 'node-toggle-btn recover-state';
+                }
+            });
+
+            // Adjust connection lines (timeline indicator)
+            const timelineLine = document.getElementById('timeline-line');
+            if (activeCount === regionsList.length) {
+                timelineLine.className = 'network-timeline-line full-online';
+            } else if (activeCount >= quorumRequired) {
+                timelineLine.className = 'network-timeline-line partial-online';
+            } else {
+                timelineLine.className = 'network-timeline-line offline';
+            }
+
+            // Log if cluster status changed
+            if (activeCount !== currentActiveCount) {
+                logTerminal(`リージョン構成が変更されました。オンライン: ${activeCount}/${regionsList.length} ノード`, 'system');
+                if (activeCount >= quorumRequired) {
+                    logTerminal(`🟢 クォーラム状態: 健全。注文データ書き込み可能です。`, 'success');
+                } else {
+                    logTerminal(`⚠️ クォーラム崩壊！ ${quorumRequired}台以上のノードがオンラインである必要があります。注文受付停止！`, 'error');
+                }
+                currentActiveCount = activeCount;
+            }
+        }
+
+        // Form Submission with Paxos Visual Simulation
+        async function submitForm(e) {
+            e.preventDefault();
+
+            const btn = document.querySelector('.btn-submit');
+            btn.disabled = true;
+            btn.textContent = '提案(Propose)中...';
+
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const message = document.getElementById('message').value;
+
+            logTerminal(`⚡ 新規注文トランザクション開始 (ご注文者: ${name.slice(0, 10)}...)`);
+            logTerminal(`📨 全レプリカへ注文データの合意提案 (Paxos Propose) を送信中...`, 'system');
+
+            // 300ms simulated delay to allow user to view the Paxos Propose animation
+            setTimeout(async () => {
+                try {
+                    const res = await fetch('/api/contact', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name, email, message })
+                    });
+
+                    const result = await res.json();
+
+                    // Print ACKs received from regions
+                    if (result.paxos) {
+                        const nameMap = {
+                            'ichikawa': '市川',
+                            'wakkanai': '稚内',
+                            'yonaguni': '与那国',
+                            'tokushima': '徳島',
+                            'sado': '佐渡'
+                        };
+                        for (const [regId, status] of Object.entries(result.paxos)) {
+                            const nameJa = nameMap[regId] || regId;
+                            if (status === 'ACK') {
+                                logTerminal(`  🟢 [${nameJa}リージョン] 注文承認 (ACK) 受信。`);
+                            } else {
+                                logTerminal(`  🔴 [${nameJa}リージョン] 無応答タイムアウト (TIMEOUT)。`, 'warn');
+                            }
+                        }
+                    }
+
+                    if (res.ok && result.success) {
+                        logTerminal(`✅ 合意形成成功！過半数 (クォーラム) の合意を確認し、出前注文が確定しました。`, 'success');
+                        logTerminal(`💾 Cloud Spanner への注文コミットが正常終了しました。(ID: ${result.id.slice(0, 8)}...)`, 'success');
+
+                        document.getElementById('name').value = '';
+                        document.getElementById('email').value = '';
+                        document.getElementById('message').value = '';
+                        await fetchLogs();
+                    } else {
+                        logTerminal(`❌ 合意形成失敗！有効なレプリカが不足しているため注文を受付できません。`, 'error');
+                        logTerminal(`🚫 注文トランザクションがアボートされました: ${result.error || '不明なエラー'}`, 'error');
+                        alert('エラーが発生しました: ' + (result.error || '合意形成失敗'));
+                    }
+                } catch (err) {
+                    console.error(err);
+                    logTerminal(`💥 通信エラーが発生しました。注文処理不可能。`, 'error');
+                    alert('通信に失敗しました。');
+                } finally {
+                    btn.disabled = false;
+                    btn.textContent = 'Spannerへ注文を送信する';
+                }
+            }, 300);
+        }
+
+        let lastDataJSON = '';
+
+        // Fetch logs
+        async function fetchLogs() {
+            const container = document.getElementById('contact-logs');
+            try {
+                const res = await fetch('/api/contacts');
+                if (!res.ok) throw new Error('API returned status ' + res.status);
+                const data = await res.json();
+
+                const currentDataJSON = JSON.stringify(data);
+                if (currentDataJSON === lastDataJSON) {
+                    return;
+                }
+                lastDataJSON = currentDataJSON;
+
+                if (!data || data.length === 0) {
+                    container.innerHTML = `<div class="empty-state">注文データはまだありません。</div>`;
+                    return;
+                }
+
+                container.innerHTML = data.map(item => `
+                    <div class="log-item">
+                        <div class="log-header">
+                            <span class="log-id">注文ID: ${item.id.slice(0, 8)}...</span>
+                            <span class="log-time">${new Date(item.created_at).toLocaleString()}</span>
+                        </div>
+                        <div class="log-sender">
+                            <strong>${escapeHTML(item.name)}</strong> (メニュー: ${escapeHTML(item.email)})
+                        </div>
+                        <div class="log-msg">
+                            お届け先: "${escapeHTML(item.message)}"
+                        </div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                console.error(err);
+                container.innerHTML = `<div class="empty-state" style="color:#ef4444;">注文データの取得に失敗しました。</div>`;
+                lastDataJSON = '';
+            }
+        }
+
+        // Helper: Escape HTML
+        function escapeHTML(str) {
+            return str
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        // Initial Load and poll
+        fetchRegions();
+        fetchLogs();
+        setInterval(fetchRegions, 4000);
+        setInterval(fetchLogs, 5000);
+    </script>
+</body>
+</html>
