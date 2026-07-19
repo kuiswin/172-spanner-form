@@ -8,6 +8,11 @@ services:
       - "127.0.0.1:9010:9010" # Spanner gRPC Port
       - "127.0.0.1:9020:9020" # Spanner REST Port
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1024M
 
   # 2. Spanner Emulator & PGAdapter Database initialization
   spanner-init:
@@ -43,3 +48,8 @@ services:
     environment:
       - DATABASE_URL=postgres://postgres@spanner-pgadapter:5432/local-db?sslmode=disable
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
