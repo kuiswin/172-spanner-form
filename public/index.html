@@ -335,7 +335,57 @@
                             if (status === 'ACK') {
                                 logTerminal(`  🟢 [${nameJa}リージョン] 注文承認 (ACK) 受信。`);
                             } else {
-                                logTerminal(`  🔴 [${nameJa}リー�                container.innerHTML = `
+                                logTerminal(`  🔴 [${nameJa}リージョン] 無応答タイムアウト (TIMEOUT)。`, 'warn');
+                            }
+                        }
+                    }
+
+                    if (res.ok && result.success) {
+                        logTerminal(`✅ 合意形成成功！過半数 (クォーラム) の合意を確認し、出前注文が確定しました。`, 'success');
+                        logTerminal(`💾 Cloud Spanner への注文コミットが正常終了しました。(ID: ${result.id.slice(0, 8)}...)`, 'success');
+
+                        document.getElementById('name').value = '';
+                        document.getElementById('email').value = '';
+                        document.getElementById('message').value = '';
+                        await fetchLogs();
+                    } else {
+                        logTerminal(`❌ 合意形成失敗！有効なレプリカが不足しているため注文を受付できません。`, 'error');
+                        logTerminal(`🚫 注文トランザクションがアボートされました: ${result.error || '不明なエラー'}`, 'error');
+                        alert('エラーが発生しました: ' + (result.error || '合意形成失敗'));
+                    }
+                } catch (err) {
+                    console.error(err);
+                    logTerminal(`💥 通信エラーが発生しました。注文処理不可能。`, 'error');
+                    alert('通信に失敗しました。');
+                } finally {
+                    btn.disabled = false;
+                    btn.textContent = 'Spannerへ注文を送信する';
+                }
+            }, 300);
+        }
+
+        let lastDataJSON = '';
+
+        // Fetch logs
+        async function fetchLogs() {
+            const container = document.getElementById('contact-logs');
+            try {
+                const res = await fetch('/api/contacts');
+                if (!res.ok) throw new Error('API returned status ' + res.status);
+                const data = await res.json();
+
+                const currentDataJSON = JSON.stringify(data);
+                if (currentDataJSON === lastDataJSON) {
+                    return; 
+                }
+                lastDataJSON = currentDataJSON;
+
+                if (!data || data.length === 0) {
+                    container.innerHTML = `<div class="empty-state">注文データはまだありません。</div>`;
+                    return;
+                }
+
+                container.innerHTML = `
                     <div class="order-table-container">
                         <table class="order-table">
                             <thead>
@@ -371,36 +421,7 @@
                             </tbody>
                         </table>
                     </div>
-                `;ong>
-                        </div>
-                        <div class="log-menu" style="margin-bottom: 6px; font-size: 0.95rem; color: #3c4043;">
-                            🍔 メニュー: <span style="font-weight: bold; color: #1a73e8;">${escapeHTML(item.item_name)}</span>
-                        </div>
-                        <div class="log-notes" style="margin-bottom: 10px; font-size: 0.95rem; color: #e65100; font-weight: bold; background: #fff3e0; padding: 4px 8px; border-radius: 4px; display: inline-block;">
-                            ✨ 特徴 (JOIN結果): ${escapeHTML(item.notes)}
-                        </div>
-                        <div class="log-msg" style="margin-bottom: 12px; font-size: 0.9rem; color: #5f6368; line-height: 1.4;">
-                            📍 お届け先: "${escapeHTML(item.delivery_address)}"
-                        </div>
-                        
-                        <!-- 機械的キー一致（等幅UUID対比）のシステム表示 -->
-                        <div class="db-colocation-verify" style="background: #f1f3f4; border: 1px solid #dadce0; border-radius: 6px; padding: 10px; font-family: 'Courier New', Courier, monospace; font-size: 0.85rem; color: #3c4043; line-height: 1.5;">
-                            <div style="font-weight: bold; color: #202124; margin-bottom: 4px; border-bottom: 1px solid #dadce0; padding-bottom: 4px; font-size: 0.75rem; letter-spacing: 0.5px;">[DATABASE_RELATION_STATUS]</div>
-                            <div style="display: flex; justify-content: space-between;">
-                                <span>├─ orders.id (Parent PK)</span>
-                                <span style="font-weight: bold; color: #1a73e8;">${item.id}</span>
-                            </div>
-                            <div style="display: flex; justify-content: space-between;">
-                                <span>└─ order_items.id (Child FK)</span>
-                                <span style="font-weight: bold; color: #1a73e8;">${item.id}</span>
-                            </div>
-                            <div style="margin-top: 6px; border-top: 1px dashed #dadce0; padding-top: 6px; font-weight: bold; display: flex; align-items: center; justify-content: space-between; font-size: 0.8rem; color: #137333;">
-                                <span>[STATUS] KEY_MATCH_VERIFIED</span>
-                                <span>🟢 INTERLEAVED</span>
-                            </div>
-                        </div>
-                    </div>
-                `).join('');
+                `;
             } catch (err) {
                 console.error(err);
                 container.innerHTML = `<div class="empty-state" style="color:#ef4444;">注文データの取得に失敗しました。</div>`;
