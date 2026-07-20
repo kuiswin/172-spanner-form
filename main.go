@@ -19,7 +19,21 @@ type OrderResponse struct {
 	CustomerName    string    `json:"customer_name"`
 	ItemName        string    `json:"item_name"`
 	DeliveryAddress string    `json:"delivery_address"`
+	Notes           string    `json:"notes"`
 	CreatedAt       time.Time `json:"created_at"`
+}
+
+var menuNotesMap = map[string]string{
+	"特上江戸前寿司 (3人前)": "わさびたっぷり",
+	"特製濃厚デミグラスハンバーグ弁当 (2人前)": "デミグラスソース多め",
+	"博多極細豚骨ラーメン＆大餃子セット": "麺硬め・にんにく増し",
+	"炭火焼き鳥盛り合わせ (塩・タレ10本)": "タレ・塩ハーフ＆ハーフ",
+	"十勝産チーズたっぷりマルゲリータピザ": "とろけるダブルチーズ仕様",
+	"四川風本格麻婆豆腐＆チャーハン弁当": "山椒強め・本格激辛スパイス",
+	"極上熟成ヒレかつサンド": "特製マスタードソース仕立て",
+	"贅沢うな重 (特上)": "秘伝のタレ2度塗り・山椒付き",
+	"冷製カッペリーニ＆完熟トマトのジェノベーゼ": "エクストラバージンオリーブオイル仕立て",
+	"山盛りフライドポテト＆旨塩から揚げファミリーパック": "特製明太マヨソース付き",
 }
 
 type Region struct {
@@ -220,8 +234,12 @@ func handleContact(w http.ResponseWriter, r *http.Request) {
 
 	// 2. Insert child order_item record (Interleaved)
 	itemID := uuid.New().String()
-	_, err = tx.Exec("INSERT INTO order_items (id, item_id, item_name, quantity) VALUES ($1, $2, $3, $4)",
-		id, itemID, req.ItemName, 1)
+	notes := menuNotesMap[req.ItemName]
+	if notes == "" {
+		notes = "デフォルト仕様"
+	}
+	_, err = tx.Exec("INSERT INTO order_items (id, item_id, item_name, quantity, notes) VALUES ($1, $2, $3, $4, $5)",
+		id, itemID, req.ItemName, 1, notes)
 	if err != nil {
 		log.Printf("Insert order item error: %v\n", err)
 		http.Error(w, "Failed to save order item to database: "+err.Error(), http.StatusInternalServerError)
@@ -246,7 +264,7 @@ func handleContact(w http.ResponseWriter, r *http.Request) {
 func handleGetContacts(w http.ResponseWriter, r *http.Request) {
 	// Query parent and child records using JOIN (PG-dialect)
 	rows, err := db.Query(`
-		SELECT o.id, o.customer_name, oi.item_name, o.delivery_address, o.created_at
+		SELECT o.id, o.customer_name, oi.item_name, o.delivery_address, oi.notes, o.created_at
 		FROM orders o
 		JOIN order_items oi ON o.id = oi.id
 		ORDER BY o.created_at DESC
@@ -261,7 +279,7 @@ func handleGetContacts(w http.ResponseWriter, r *http.Request) {
 	var contacts []OrderResponse
 	for rows.Next() {
 		var c OrderResponse
-		if err := rows.Scan(&c.ID, &c.CustomerName, &c.ItemName, &c.DeliveryAddress, &c.CreatedAt); err != nil {
+		if err := rows.Scan(&c.ID, &c.CustomerName, &c.ItemName, &c.DeliveryAddress, &c.Notes, &c.CreatedAt); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -274,17 +292,37 @@ func handleGetContacts(w http.ResponseWriter, r *http.Request) {
 
 func initDefaultData() {
 	var count int
-	err := db.QueryRow("SELECT COUNT(*) FROM orders").Scan(&count)
-	if err != nil {
-		log.Printf("Failed to count orders during init: %v. Database schema might not be ready yet. Skipping init.\n", err)
-		return
+	var err error
+
+	log.Println("Background worker: Waiting for Spanner tables (orders, order_items) to be created by init container...")
+	for i := 0; i < 20; i++ {
+		// Query both tables to ensure DDL has completed
+		err = db.QueryRow("SELECT COUNT(*) FROM orders CROSS JOIN order_items").Scan(&count)
+		if err == nil {
+			log.Println("Background worker: Spanner tables are ready! Proceeding with auto-seeding...")
+			break
+		}
+		log.Printf("Background worker: Tables are not ready yet (attempt %d/20): %v\n", i+1, err)
+		time.Sleep(2 * time.Second)
 	}
-	if count > 0 {
-		log.Println("Default data already exists. Skipping insertion.")
+
+	if err != nil {
+		log.Printf("Background worker: Tables were not ready in time. Skipping auto-seeding: %v\n", err)
 		return
 	}
 
-	log.Println("Database is empty. Inserting default Spanner-themed orders...")
+	// Double check count of parent orders table
+	err = db.QueryRow("SELECT COUNT(*) FROM orders").Scan(&count)
+	if err != nil {
+		log.Printf("Failed to count orders: %v\n", err)
+		return
+	}
+	if count > 0 {
+		log.Println("Background worker: Default data already exists. Skipping insertion.")
+		return
+	}
+
+	log.Println("Background worker: Database is empty. Inserting default Spanner-themed orders...")
 	
 	defaultOrders := []struct {
 		ID       string
@@ -334,8 +372,12 @@ func initDefaultData() {
 		}
 
 		itemID := uuid.New().String()
-		_, err = tx.Exec("INSERT INTO order_items (id, item_id, item_name, quantity) VALUES ($1, $2, $3, $4)",
-			o.ID, itemID, o.MenuItem, 1)
+		notes := menuNotesMap[o.MenuItem]
+		if notes == "" {
+			notes = "デフォルト仕様"
+		}
+		_, err = tx.Exec("INSERT INTO order_items (id, item_id, item_name, quantity, notes) VALUES ($1, $2, $3, $4, $5)",
+			o.ID, itemID, o.MenuItem, 1, notes)
 		if err != nil {
 			log.Printf("Init child order item error: %v\n", err)
 			tx.Rollback()
