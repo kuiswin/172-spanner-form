@@ -128,7 +128,19 @@
                         </div>
                         <div class="form-group">
                             <label for="email" class="form-label">ご注文メニュー</label>
-                            <input type="text" id="email" class="form-control" placeholder="特上江戸前寿司 (3人前)" required>
+                            <select id="email" class="form-control" required>
+                                <option value="" disabled selected>メニューを選択してください</option>
+                                <option value="特上江戸前寿司 (3人前)">特上江戸前寿司 (3人前)</option>
+                                <option value="特製濃厚デミグラスハンバーグ弁当 (2人前)">特製濃厚デミグラスハンバーグ弁当 (2人前)</option>
+                                <option value="博多極細豚骨ラーメン＆大餃子セット">博多極細豚骨ラーメン＆大餃子セット</option>
+                                <option value="炭火焼き鳥盛り合わせ (塩・タレ10本)">炭火焼き鳥盛り合わせ (塩・タレ10本)</option>
+                                <option value="十勝産チーズたっぷりマルゲリータピザ">十勝産チーズたっぷりマルゲリータピザ</option>
+                                <option value="四川風本格麻婆豆腐＆チャーハン弁当">四川風本格麻婆豆腐＆チャーハン弁当</option>
+                                <option value="極上熟成ヒレかつサンド">極上熟成ヒレかつサンド</option>
+                                <option value="贅沢うな重 (特上)">贅沢うな重 (特上)</option>
+                                <option value="冷製カッペリーニ＆完熟トマトのジェノベーゼ">冷製カッペリーニ＆完熟トマトのジェノベーゼ</option>
+                                <option value="山盛りフライドポテト＆旨塩から揚げファミリーパック">山盛りフライドポテト＆旨塩から揚げファミリーパック</option>
+                            </select>
                         </div>
                         <div class="form-group">
                             <label for="message" class="form-label">お届け先住所・配達要望</label>
@@ -374,9 +386,9 @@
                 }
 
                 container.innerHTML = data.map(item => `
-                    <div class="log-item">
+                    <div class="log-item" style="border-left: 5px solid #10b981; position: relative;">
                         <div class="log-header">
-                            <span class="log-id">注文ID: ${item.id.slice(0, 8)}...</span>
+                            <span class="log-id">注文ID: ${item.id}</span>
                             <span class="log-time">${new Date(item.created_at).toLocaleString()}</span>
                         </div>
                         <div class="log-sender">
@@ -384,6 +396,13 @@
                         </div>
                         <div class="log-msg">
                             お届け先: "${escapeHTML(item.delivery_address)}"
+                        </div>
+                        <div class="log-status" style="margin-top: 10px; padding: 6px 12px; background: #e6f4ea; border-radius: 4px; display: inline-flex; align-items: center; font-size: 0.85rem; color: #137333; font-weight: bold;">
+                            <span style="display: inline-block; width: 8px; height: 8px; background-color: #137333; border-radius: 50%; margin-right: 6px;"></span>
+                            物理コロケーション同居バインド (Interleaved: 親IDと同一Split)
+                        </div>
+                        <div style="font-size: 0.75rem; color: #5f6368; margin-top: 4px;">
+                            💡 子テーブル(order_items)の親IDが親(orders)と完全に一致したUUIDv4となっており、同じ物理ブロック内にネスト格納されています。
                         </div>
                     </div>
                 `).join('');

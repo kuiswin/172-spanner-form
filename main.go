@@ -76,6 +76,12 @@ func main() {
 	http.HandleFunc("/api/regions", handleGetRegions)
 	http.HandleFunc("/api/regions/toggle", handleToggleRegion)
 
+	// Start background initialization of default data
+	go func() {
+		time.Sleep(5 * time.Second) // Wait for DDL setup completed by spanner-init
+		initDefaultData()
+	}()
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "80"
@@ -264,4 +270,82 @@ func handleGetContacts(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(contacts)
+}
+
+func initDefaultData() {
+	var count int
+	err := db.QueryRow("SELECT COUNT(*) FROM orders").Scan(&count)
+	if err != nil {
+		log.Printf("Failed to count orders during init: %v. Database schema might not be ready yet. Skipping init.\n", err)
+		return
+	}
+	if count > 0 {
+		log.Println("Default data already exists. Skipping insertion.")
+		return
+	}
+
+	log.Println("Database is empty. Inserting default Spanner-themed orders...")
+	
+	defaultOrders := []struct {
+		ID       string
+		Name     string
+		MenuItem string
+		Address  string
+		TimeDiff time.Duration
+	}{
+		{
+			ID:       "ef3ea497-de0c-4aea-8978-a0b7cb874a35",
+			Name:     "山田 太郎",
+			MenuItem: "特上江戸前寿司 (3人前)",
+			Address:  "GCP県スパーナー市マルチリージョン1-1-1 スパーナービル501号 / インターホンを鳴らさずに置き配でお願いします。",
+			TimeDiff: -3 * time.Minute,
+		},
+		{
+			ID:       "f8da8be9-af41-449f-8ccd-8c6a59630a96",
+			Name:     "鈴木 花子",
+			MenuItem: "特製濃厚デミグラスハンバーグ弁当 (2人前)",
+			Address:  "クラウド県サーバーレス町インスタンス2-3-4 / 到着前にお電話ください。",
+			TimeDiff: -2 * time.Minute,
+		},
+		{
+			ID:       "4d6f571f-1521-446c-b643-3dce79c9420d",
+			Name:     "佐藤 健",
+			MenuItem: "博多極細豚骨ラーメン＆大餃子セット",
+			Address:  "合意形成県パクソス区レプリカ5-5-5 合意タワー303号",
+			TimeDiff: -1 * time.Minute,
+		},
+	}
+
+	for _, o := range defaultOrders {
+		tx, err := db.Begin()
+		if err != nil {
+			log.Printf("Failed to begin init transaction: %v\n", err)
+			continue
+		}
+		
+		createdAt := time.Now().Add(o.TimeDiff)
+		
+		_, err = tx.Exec("INSERT INTO orders (id, customer_name, delivery_address, created_at) VALUES ($1, $2, $3, $4)",
+			o.ID, o.Name, o.Address, createdAt)
+		if err != nil {
+			log.Printf("Init parent order error: %v\n", err)
+			tx.Rollback()
+			continue
+		}
+
+		itemID := uuid.New().String()
+		_, err = tx.Exec("INSERT INTO order_items (id, item_id, item_name, quantity) VALUES ($1, $2, $3, $4)",
+			o.ID, itemID, o.MenuItem, 1)
+		if err != nil {
+			log.Printf("Init child order item error: %v\n", err)
+			tx.Rollback()
+			continue
+		}
+
+		if err := tx.Commit(); err != nil {
+			log.Printf("Init commit error: %v\n", err)
+		} else {
+			log.Printf("Inserted default order for %s successfully.\n", o.Name)
+		}
+	}
 }
