@@ -14,12 +14,12 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-type Contact struct {
-	ID        string    `json:"id"`
-	Name      string    `json:"name"`
-	Email     string    `json:"email"`
-	Message   string    `json:"message"`
-	CreatedAt time.Time `json:"created_at"`
+type OrderResponse struct {
+	ID              string    `json:"id"`
+	CustomerName    string    `json:"customer_name"`
+	ItemName        string    `json:"item_name"`
+	DeliveryAddress string    `json:"delivery_address"`
+	CreatedAt       time.Time `json:"created_at"`
 }
 
 type Region struct {
@@ -148,16 +148,16 @@ func handleContact(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-		Name    string `json:"name"`
-		Email   string `json:"email"`
-		Message string `json:"message"`
+		CustomerName    string `json:"customer_name"`
+		ItemName        string `json:"item_name"`
+		DeliveryAddress string `json:"delivery_address"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	if req.Name == "" || req.Email == "" || req.Message == "" {
+	if req.CustomerName == "" || req.ItemName == "" || req.DeliveryAddress == "" {
 		http.Error(w, "All fields are required", http.StatusBadRequest)
 		return
 	}
@@ -205,7 +205,7 @@ func handleContact(w http.ResponseWriter, r *http.Request) {
 
 	// 1. Insert parent order record
 	_, err = tx.Exec("INSERT INTO orders (id, customer_name, delivery_address, created_at) VALUES ($1, $2, $3, $4)",
-		id, req.Name, req.Message, createdAt)
+		id, req.CustomerName, req.DeliveryAddress, createdAt)
 	if err != nil {
 		log.Printf("Insert order error: %v\n", err)
 		http.Error(w, "Failed to save order to database: "+err.Error(), http.StatusInternalServerError)
@@ -215,7 +215,7 @@ func handleContact(w http.ResponseWriter, r *http.Request) {
 	// 2. Insert child order_item record (Interleaved)
 	itemID := uuid.New().String()
 	_, err = tx.Exec("INSERT INTO order_items (id, item_id, item_name, quantity) VALUES ($1, $2, $3, $4)",
-		id, itemID, req.Email, 1)
+		id, itemID, req.ItemName, 1)
 	if err != nil {
 		log.Printf("Insert order item error: %v\n", err)
 		http.Error(w, "Failed to save order item to database: "+err.Error(), http.StatusInternalServerError)
@@ -252,10 +252,10 @@ func handleGetContacts(w http.ResponseWriter, r *http.Request) {
 	}
 	defer rows.Close()
 
-	var contacts []Contact
+	var contacts []OrderResponse
 	for rows.Next() {
-		var c Contact
-		if err := rows.Scan(&c.ID, &c.Name, &c.Email, &c.Message, &c.CreatedAt); err != nil {
+		var c OrderResponse
+		if err := rows.Scan(&c.ID, &c.CustomerName, &c.ItemName, &c.DeliveryAddress, &c.CreatedAt); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}

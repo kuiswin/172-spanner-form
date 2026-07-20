@@ -304,7 +304,7 @@
                     const res = await fetch('/api/contact', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ name, email, message })
+                        body: JSON.stringify({ customer_name: name, item_name: email, delivery_address: message })
                     });
 
                     const result = await res.json();
@@ -380,10 +380,10 @@
                             <span class="log-time">${new Date(item.created_at).toLocaleString()}</span>
                         </div>
                         <div class="log-sender">
-                            <strong>${escapeHTML(item.name)}</strong> (メニュー: ${escapeHTML(item.email)})
+                            <strong>${escapeHTML(item.customer_name)}</strong> (メニュー: ${escapeHTML(item.item_name)})
                         </div>
                         <div class="log-msg">
-                            お届け先: "${escapeHTML(item.message)}"
+                            お届け先: "${escapeHTML(item.delivery_address)}"
                         </div>
                     </div>
                 `).join('');
