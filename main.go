@@ -214,42 +214,73 @@ func handleContact(w http.ResponseWriter, r *http.Request) {
 	id := uuid.New().String()
 	createdAt := time.Now()
 
-	// Insert order and order_items via PGAdapter inside a transaction (PG-dialect)
-	tx, err := db.Begin()
-	if err != nil {
-		log.Printf("Transaction begin error: %v\n", err)
-		http.Error(w, "Failed to start transaction: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-	defer tx.Rollback()
+	// Insert order and order_items via PGAdapter inside a transaction with exponential backoff retry for error 40001 (Spanner Abort)
+	maxRetries := 5
+	baseDelay := 10 * time.Millisecond
+	var txErr error
 
-	// 1. Insert parent order record
-	_, err = tx.Exec("INSERT INTO orders (id, customer_name, delivery_address, created_at) VALUES ($1, $2, $3, $4)",
-		id, req.CustomerName, req.DeliveryAddress, createdAt)
-	if err != nil {
-		log.Printf("Insert order error: %v\n", err)
-		http.Error(w, "Failed to save order to database: "+err.Error(), http.StatusInternalServerError)
-		return
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		tx, err := db.Begin()
+		if err != nil {
+			log.Printf("Transaction begin error (attempt %d): %v\n", attempt+1, err)
+			time.Sleep(time.Duration(1<<attempt) * baseDelay)
+			continue
+		}
+
+		// 1. Insert parent order record
+		_, err = tx.Exec("INSERT INTO orders (id, customer_name, delivery_address, created_at) VALUES ($1, $2, $3, $4)",
+			id, req.CustomerName, req.DeliveryAddress, createdAt)
+		if err != nil {
+			tx.Rollback()
+			if isSerializationFailure(err) {
+				log.Printf("Spanner Abort (40001) detected on order insert, retrying... (attempt %d/%d)", attempt+1, maxRetries)
+				time.Sleep(time.Duration(1<<attempt) * baseDelay)
+				continue
+			}
+			log.Printf("Insert order error: %v\n", err)
+			http.Error(w, "Failed to save order to database: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// 2. Insert child order_item record (Interleaved)
+		itemID := uuid.New().String()
+		notes := menuNotesMap[req.ItemName]
+		if notes == "" {
+			notes = "デフォルト仕様"
+		}
+		_, err = tx.Exec("INSERT INTO order_items (id, item_id, item_name, quantity, notes) VALUES ($1, $2, $3, $4, $5)",
+			id, itemID, req.ItemName, 1, notes)
+		if err != nil {
+			tx.Rollback()
+			if isSerializationFailure(err) {
+				log.Printf("Spanner Abort (40001) detected on order_item insert, retrying... (attempt %d/%d)", attempt+1, maxRetries)
+				time.Sleep(time.Duration(1<<attempt) * baseDelay)
+				continue
+			}
+			log.Printf("Insert order item error: %v\n", err)
+			http.Error(w, "Failed to save order item to database: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// 3. Commit the transaction
+		if err := tx.Commit(); err != nil {
+			if isSerializationFailure(err) {
+				log.Printf("Spanner Abort (40001) detected on commit, retrying... (attempt %d/%d)", attempt+1, maxRetries)
+				time.Sleep(time.Duration(1<<attempt) * baseDelay)
+				continue
+			}
+			log.Printf("Transaction commit error: %v\n", err)
+			http.Error(w, "Failed to commit transaction: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// Successfully committed
+		txErr = nil
+		break
 	}
 
-	// 2. Insert child order_item record (Interleaved)
-	itemID := uuid.New().String()
-	notes := menuNotesMap[req.ItemName]
-	if notes == "" {
-		notes = "デフォルト仕様"
-	}
-	_, err = tx.Exec("INSERT INTO order_items (id, item_id, item_name, quantity, notes) VALUES ($1, $2, $3, $4, $5)",
-		id, itemID, req.ItemName, 1, notes)
-	if err != nil {
-		log.Printf("Insert order item error: %v\n", err)
-		http.Error(w, "Failed to save order item to database: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	// 3. Commit the transaction
-	if err := tx.Commit(); err != nil {
-		log.Printf("Transaction commit error: %v\n", err)
-		http.Error(w, "Failed to commit transaction: "+err.Error(), http.StatusInternalServerError)
+	if txErr != nil {
+		http.Error(w, "Transaction aborted after max retries: "+txErr.Error(), http.StatusServiceUnavailable)
 		return
 	}
 
@@ -335,7 +366,7 @@ func initDefaultData() {
 			ID:       "ef3ea497-de0c-4aea-8978-a0b7cb874a35",
 			Name:     "山田 太郎",
 			MenuItem: "特上江戸前寿司 (3人前)",
-			Address:  "GCP県スパーナー市マルチリージョン1-1-1 スパーナービル501号 / インターホンを鳴らさずに置き配でお願いします。",
+			Address:  "Google Cloud県スパーナー市マルチリージョン1-1-1 スパーナービル501号 / インターホンを鳴らさずに置き配でお願いします。",
 			TimeDiff: -3 * time.Minute,
 		},
 		{
@@ -390,4 +421,13 @@ func initDefaultData() {
 			log.Printf("Inserted default order for %s successfully.\n", o.Name)
 		}
 	}
+}
+
+// isSerializationFailure checks if the database error is a Spanner serialization failure (PostgreSQL error code 40001)
+func isSerializationFailure(err error) bool {
+	if err == nil {
+		return false
+	}
+	errStr := err.Error()
+	return len(errStr) > 0 && (errStr == "40001" || (len(errStr) >= 5 && errStr[:5] == "40001") || (len(errStr) >= 27 && errStr[len(errStr)-27:] == "Serialization Failure (40001)") || (len(errStr) >= 5 && errStr[len(errStr)-5:] == "40001"))
 }
