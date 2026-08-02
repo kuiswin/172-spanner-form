@@ -11,6 +11,12 @@ gcloud spanner instances create main-spanner-instance     --config=regional-asia
 
 gcloud spanner databases create delivery-db     --instance=main-spanner-instance     --database-dialect=POSTGRESQL || true
 
+# 2.5. スキーマ (DDL) の適用
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "${SCRIPT_DIR}/schema.sql" ]; then
+    gcloud spanner databases ddl update delivery-db --instance=main-spanner-instance --ddl-file="${SCRIPT_DIR}/schema.sql" || true
+fi
+
 # 3. Artifact Registry の作成
 gcloud artifacts repositories create ${SERVICE_NAME}-repo     --repository-format=docker     --location=${REGION}     --description="Spanner App Docker repository" || true
 
