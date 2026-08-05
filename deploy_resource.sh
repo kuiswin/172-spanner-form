@@ -6,6 +6,7 @@ gcloud run deploy ${SERVICE_NAME} \
     --service-account=${SA_EMAIL} \
     --execution-environment=gen1 \
     --max-instances 10 \
+    --quiet \
     --add-volume=name=sockets-dir,type=in-memory,size=50Mi \
     --container pgadapter \
       --image="gcr.io/cloud-spanner-pg-adapter/pgadapter:latest" \
