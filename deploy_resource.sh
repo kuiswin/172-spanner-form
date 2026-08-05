@@ -13,6 +13,7 @@ gcloud run deploy ${SERVICE_NAME} \
       --image="gcr.io/cloud-spanner-pg-adapter/pgadapter:latest" \
       --args="-p,${PROJECT_ID},-i,main-spanner-instance,-dir,/sockets" \
       --add-volume-mount=volume=sockets-dir,mount-path=/sockets \
+      --startup-probe=tcpSocket.port=5432 \
     --container app \
       --source . \
       --depends-on=pgadapter \
