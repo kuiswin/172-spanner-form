@@ -16,7 +16,7 @@ gcloud run deploy ${SERVICE_NAME} \
     --add-volume=name=sockets-dir,type=in-memory,size-limit=50Mi \
     --container pgadapter \
       --image="gcr.io/cloud-spanner-pg-adapter/pgadapter:latest" \
-      --args="-p,${PROJECT_ID},-i,main-spanner-instance,-dir,/sockets" \
+      --args="-p,${PROJECT_ID},-i,main-spanner-instance,-dir,/sockets,-s,5432" \
       --add-volume-mount=volume=sockets-dir,mount-path=/sockets \
       --startup-probe=tcpSocket.port=5432 \
     --container app \
