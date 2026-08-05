@@ -31,86 +31,86 @@
                     
                     <div class="story-box">
                         💡 <strong>出前停止防止シナリオ</strong><br>
-                        出前システム停止による注文ロスを防ぐため、日本全国のデータセンター（市川・稚内・与那国・徳島・佐渡）にレプリカを分散配置！過半数(3/5)が稼働していれば、障害時も注文を一切落とさずに合意保存（Paxos）できる様子を実証します。
+                        出前システム停止による注文ロスを防ぐため、地球規模のマルチリージョン（アイオワ・サウスカロライナ・ベルギー・オランダ・東京）にレプリカを分散配置！過半数(3/5)が稼働していれば、障害時も注文を一切落とさずに合意保存（Paxos）できる様子を実証します。
                     </div>
 
                     <div class="paxos-network-vertical">
                         <!-- 接続線 -->
                         <div class="network-timeline-line" id="timeline-line"></div>
 
-                        <!-- 市川ノード (Leader) -->
-                        <div class="node-vertical-item" id="node-ichikawa">
+                        <!-- アイオワノード (Leader) -->
+                        <div class="node-vertical-item" id="node-iowa">
                             <div class="node-top-row">
-                                <div class="node-icon-wrapper">🏢</div>
+                                <div class="node-icon-wrapper">🌽</div>
                                 <div class="node-vertical-info">
-                                    <div class="node-vertical-title">市川リージョン</div>
+                                    <div class="node-vertical-title">アイオワリージョン (米国)</div>
                                     <div class="node-badge-row">
                                         <span class="role-badge leader">Leader</span>
                                         <span class="node-status ONLINE">ONLINE</span>
                                     </div>
                                 </div>
                             </div>
-                            <button class="node-toggle-btn active-state" id="btn-ichikawa" onclick="toggleRegion('ichikawa')">💥 破壊する</button>
+                            <button class="node-toggle-btn active-state" id="btn-iowa" onclick="toggleRegion('iowa')">💥 破壊する</button>
                         </div>
 
-                        <!-- 稚内ノード (Replica) -->
-                        <div class="node-vertical-item" id="node-wakkanai">
+                        <!-- サウスカロライナノード (Replica) -->
+                        <div class="node-vertical-item" id="node-south_carolina">
                             <div class="node-top-row">
-                                <div class="node-icon-wrapper">❄️</div>
+                                <div class="node-icon-wrapper">🌴</div>
                                 <div class="node-vertical-info">
-                                    <div class="node-vertical-title">稚内リージョン</div>
+                                    <div class="node-vertical-title">サウスカロライナリージョン (米国)</div>
                                     <div class="node-badge-row">
                                         <span class="role-badge replica">Replica</span>
                                         <span class="node-status ONLINE">ONLINE</span>
                                     </div>
                                 </div>
                             </div>
-                            <button class="node-toggle-btn active-state" id="btn-wakkanai" onclick="toggleRegion('wakkanai')">💥 破壊する</button>
+                            <button class="node-toggle-btn active-state" id="btn-south_carolina" onclick="toggleRegion('south_carolina')">💥 破壊する</button>
                         </div>
 
-                        <!-- 与那国ノード (Replica) -->
-                        <div class="node-vertical-item" id="node-yonaguni">
+                        <!-- ベルギーノード (Replica) -->
+                        <div class="node-vertical-item" id="node-belgium">
                             <div class="node-top-row">
-                                <div class="node-icon-wrapper">🌺</div>
+                                <div class="node-icon-wrapper">🍫</div>
                                 <div class="node-vertical-info">
-                                    <div class="node-vertical-title">与那国リージョン</div>
+                                    <div class="node-vertical-title">ベルギーリージョン (欧州)</div>
                                     <div class="node-badge-row">
                                         <span class="role-badge replica">Replica</span>
                                         <span class="node-status ONLINE">ONLINE</span>
                                     </div>
                                 </div>
                             </div>
-                            <button class="node-toggle-btn active-state" id="btn-yonaguni" onclick="toggleRegion('yonaguni')">💥 破壊する</button>
+                            <button class="node-toggle-btn active-state" id="btn-belgium" onclick="toggleRegion('belgium')">💥 破壊する</button>
                         </div>
 
-                        <!-- 徳島ノード (Witness) -->
-                        <div class="node-vertical-item" id="node-tokushima">
+                        <!-- オランダノード (Witness) -->
+                        <div class="node-vertical-item" id="node-netherlands">
                             <div class="node-top-row">
-                                <div class="node-icon-wrapper">🌀</div>
+                                <div class="node-icon-wrapper">🌷</div>
                                 <div class="node-vertical-info">
-                                    <div class="node-vertical-title">徳島リージョン</div>
+                                    <div class="node-vertical-title">オランダリージョン (欧州)</div>
                                     <div class="node-badge-row">
                                         <span class="role-badge witness">Witness</span>
                                         <span class="node-status ONLINE">ONLINE</span>
                                     </div>
                                 </div>
                             </div>
-                            <button class="node-toggle-btn active-state" id="btn-tokushima" onclick="toggleRegion('tokushima')">💥 破壊する</button>
+                            <button class="node-toggle-btn active-state" id="btn-netherlands" onclick="toggleRegion('netherlands')">💥 破壊する</button>
                         </div>
 
-                        <!-- 佐渡ノード (Witness) -->
-                        <div class="node-vertical-item" id="node-sado">
+                        <!-- 東京ノード (Witness) -->
+                        <div class="node-vertical-item" id="node-tokyo">
                             <div class="node-top-row">
-                                <div class="node-icon-wrapper">🪙</div>
+                                <div class="node-icon-wrapper">🗼</div>
                                 <div class="node-vertical-info">
-                                    <div class="node-vertical-title">佐渡リージョン</div>
+                                    <div class="node-vertical-title">東京リージョン (日本)</div>
                                     <div class="node-badge-row">
                                         <span class="role-badge witness">Witness</span>
                                         <span class="node-status ONLINE">ONLINE</span>
                                     </div>
                                 </div>
                             </div>
-                            <button class="node-toggle-btn active-state" id="btn-sado" onclick="toggleRegion('sado')">💥 破壊する</button>
+                            <button class="node-toggle-btn active-state" id="btn-tokyo" onclick="toggleRegion('tokyo')">💥 破壊する</button>
                         </div>
                     </div>
                 </div>
@@ -324,11 +324,11 @@
                     // Print ACKs received from regions
                     if (result.paxos) {
                         const nameMap = {
-                            'ichikawa': '市川',
-                            'wakkanai': '稚内',
-                            'yonaguni': '与那国',
-                            'tokushima': '徳島',
-                            'sado': '佐渡'
+                            'iowa': 'アイオワ',
+                            'south_carolina': 'サウスカロライナ',
+                            'belgium': 'ベルギー',
+                            'netherlands': 'オランダ',
+                            'tokyo': '東京'
                         };
                         for (const [regId, status] of Object.entries(result.paxos)) {
                             const nameJa = nameMap[regId] || regId;

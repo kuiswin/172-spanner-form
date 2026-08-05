@@ -47,11 +47,11 @@ var (
 	db        *sql.DB
 	regionsMu sync.RWMutex
 	regions   = []Region{
-		{ID: "ichikawa", Name: "市川リージョン (Leader)", Status: "ONLINE", Type: "Leader"},
-		{ID: "wakkanai", Name: "稚内リージョン (Replica)", Status: "ONLINE", Type: "Replica"},
-		{ID: "yonaguni", Name: "与那国リージョン (Replica)", Status: "ONLINE", Type: "Replica"},
-		{ID: "tokushima", Name: "徳島リージョン (Witness)", Status: "ONLINE", Type: "Witness"},
-		{ID: "sado", Name: "佐渡リージョン (Witness)", Status: "ONLINE", Type: "Witness"},
+		{ID: "iowa", Name: "アイオワリージョン (Leader)", Status: "ONLINE", Type: "Leader"},
+		{ID: "south_carolina", Name: "サウスカロライナリージョン (Replica)", Status: "ONLINE", Type: "Replica"},
+		{ID: "belgium", Name: "ベルギーリージョン (Replica)", Status: "ONLINE", Type: "Replica"},
+		{ID: "netherlands", Name: "オランダリージョン (Witness)", Status: "ONLINE", Type: "Witness"},
+		{ID: "tokyo", Name: "東京リージョン (Witness)", Status: "ONLINE", Type: "Witness"},
 	}
 )
 
