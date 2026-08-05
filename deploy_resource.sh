@@ -6,6 +6,7 @@ gcloud run deploy ${SERVICE_NAME} \
     --allow-unauthenticated \
     --service-account=${SA_EMAIL} \
     --execution-environment=gen1 \
+    --max-instances 10 \
     --add-volume=name=sockets-dir,type=in-memory,size=50Mi \
     --container pgadapter \
       --image="gcr.io/cloud-spanner-pg-adapter/pgadapter:latest" \
@@ -15,5 +16,4 @@ gcloud run deploy ${SERVICE_NAME} \
       --depends-on=pgadapter \
       --set-env-vars="DATABASE_URL=host=/sockets port=5432 user=postgres dbname=delivery-db sslmode=disable" \
       --port 80 \
-      --add-volume-mount=volume=sockets-dir,mount-path=/sockets \
-    --max-instances 10
+      --add-volume-mount=volume=sockets-dir,mount-path=/sockets
