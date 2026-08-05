@@ -6,8 +6,24 @@ SA_NAME="spanner-client-sa"
 
 gcloud config set project ${PROJECT_ID}
 
+# -----------------------------------------------------------------
+# ⚙️ 【モード選択】
+#   MODE="safe"   : 🛡️ 90日間完全無料！東京 100 PU 安心モード
+#   MODE="roman"  : 🔥 【極大ロマン】地球3大陸マルチリージョン (nam-eur-asia1 / 1,000 PU)
+# -----------------------------------------------------------------
+MODE="roman"
+
+if [ "$MODE" = "roman" ]; then
+    echo "🔥 【極大ロマンモード発動】地球3大陸マルチリージョン (nam-eur-asia1 / 1,000 PU) を召喚します！"
+    echo "⚠️ ※ 約90円の10分間限定体験です。遊んだ後は必ず teardown.sh で解約してください！"
+    CONFIG_FLAGS="--config=nam-eur-asia1 --nodes=1"
+else
+    echo "🛡️ 【安心モード発動】90日間完全無料の東京 100 PU で作成します！"
+    CONFIG_FLAGS="--config=regional-asia-northeast1 --processing-units=100"
+fi
+
 # 2. Spanner インスタンスとデータベースの作成 (PG-dialect)
-gcloud spanner instances create main-spanner-instance     --config=regional-asia-northeast1     --description="Delivery Main Spanner Instance"     --processing-units=100 || true
+gcloud spanner instances create main-spanner-instance ${CONFIG_FLAGS} --description="Delivery Main Spanner Instance" || true
 
 gcloud spanner databases create delivery-db     --instance=main-spanner-instance     --database-dialect=POSTGRESQL || true
 
