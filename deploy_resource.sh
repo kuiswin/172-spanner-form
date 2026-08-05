@@ -1,10 +1,5 @@
-# 作業ディレクトリへの移動 ＆ 共通変数の自動取得
-cd /root/sandbox_172 2>/dev/null || cd /root/QIITAMD/sandbox_172 2>/dev/null || true
-PROJECT_ID=${PROJECT_ID:-$(gcloud config get-value project 2>/dev/null)}
-REGION=${REGION:-"asia-northeast1"}
-SERVICE_NAME=${SERVICE_NAME:-"spanner-delivery"}
-SA_NAME=${SA_NAME:-"spanner-client-sa"}
-SA_EMAIL="${SA_NAME}@${PROJECT_ID}.iam.gserviceaccount.com"
+# 作業ディレクトリへの移動
+cd /root/QIITAMD/sandbox_172 2>/dev/null || cd /root/sandbox_172 2>/dev/null || true
 # ※gcloud run deploy --source . はCloud Buildでのコンテナビルドとデプロイを自動的に一括で行います。
 gcloud run deploy ${SERVICE_NAME} \
     --region ${REGION} \
