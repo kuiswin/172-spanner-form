@@ -1,4 +1,5 @@
-# Cloud Runへのソースベースデプロイ（マルチコンテナ・サイドカー構成）
+# 作業ディレクトリへの移動
+cd /root/sandbox_172 2>/dev/null || cd /root/QIITAMD/sandbox_172 2>/dev/null || true
 # ※gcloud run deploy --source . はCloud Buildでのコンテナビルドとデプロイを自動的に一括で行います。
 gcloud run deploy ${SERVICE_NAME} \
     --region ${REGION} \
