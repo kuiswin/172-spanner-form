@@ -1,7 +1,6 @@
 # Cloud Runへのソースベースデプロイ（マルチコンテナ・サイドカー構成）
 # ※gcloud run deploy --source . はCloud Buildでのコンテナビルドとデプロイを自動的に一括で行います。
 gcloud run deploy ${SERVICE_NAME} \
-    --source . \
     --region ${REGION} \
     --allow-unauthenticated \
     --service-account=${SA_EMAIL} \
@@ -13,6 +12,7 @@ gcloud run deploy ${SERVICE_NAME} \
       --args="-p,${PROJECT_ID},-i,main-spanner-instance,-dir,/sockets" \
       --add-volume-mount=volume=sockets-dir,mount-path=/sockets \
     --container app \
+      --source . \
       --depends-on=pgadapter \
       --set-env-vars="DATABASE_URL=host=/sockets port=5432 user=postgres dbname=delivery-db sslmode=disable" \
       --port 80 \
