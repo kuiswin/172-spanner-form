@@ -1,5 +1,5 @@
 # 作業ディレクトリへの移動
-cd /root/QIITAMD/sandbox_172 2>/dev/null || cd /root/sandbox_172 2>/dev/null || true
+cd "$(dirname "$0")" 2>/dev/null || true
 # ※gcloud run deploy --source . はCloud Buildでのコンテナビルドとデプロイを自動的に一括で行います。
 gcloud run deploy ${SERVICE_NAME} \
     --region ${REGION} \
