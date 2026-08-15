@@ -15,7 +15,7 @@ MODE="safe"
 
 if [ "$MODE" = "roman" ]; then
     echo "🔥 【極大ロマンモード発動】地球3大陸マルチリージョン (nam-eur-asia1 / 1,000 PU) を召喚します！"
-    echo "⚠️ ※ 約90円の10分間限定体験です。遊んだ後は必ず teardown.sh で解約してください！"
+    echo "⚠️ ※ 約1,200円/時（最低1時間課金）が発生します。遊んだ後は必ず teardown.sh で解約してください！"
     CONFIG_FLAGS="--config=nam-eur-asia1 --nodes=1"
 else
     echo "🛡️ 【安心モード発動】90日間完全無料の東京 100 PU で作成します！"
