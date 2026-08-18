@@ -223,6 +223,7 @@ func handleContact(w http.ResponseWriter, r *http.Request) {
 		tx, err := db.Begin()
 		if err != nil {
 			log.Printf("Transaction begin error (attempt %d): %v\n", attempt+1, err)
+			txErr = err
 			time.Sleep(time.Duration(1<<attempt) * baseDelay)
 			continue
 		}
@@ -234,6 +235,7 @@ func handleContact(w http.ResponseWriter, r *http.Request) {
 			tx.Rollback()
 			if isSerializationFailure(err) {
 				log.Printf("Spanner Abort (40001) detected on order insert, retrying... (attempt %d/%d)", attempt+1, maxRetries)
+				txErr = err
 				time.Sleep(time.Duration(1<<attempt) * baseDelay)
 				continue
 			}
@@ -254,6 +256,7 @@ func handleContact(w http.ResponseWriter, r *http.Request) {
 			tx.Rollback()
 			if isSerializationFailure(err) {
 				log.Printf("Spanner Abort (40001) detected on order_item insert, retrying... (attempt %d/%d)", attempt+1, maxRetries)
+				txErr = err
 				time.Sleep(time.Duration(1<<attempt) * baseDelay)
 				continue
 			}
@@ -266,6 +269,7 @@ func handleContact(w http.ResponseWriter, r *http.Request) {
 		if err := tx.Commit(); err != nil {
 			if isSerializationFailure(err) {
 				log.Printf("Spanner Abort (40001) detected on commit, retrying... (attempt %d/%d)", attempt+1, maxRetries)
+				txErr = err
 				time.Sleep(time.Duration(1<<attempt) * baseDelay)
 				continue
 			}
